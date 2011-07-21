@@ -1,6 +1,3 @@
-;; This is my .emacs file. A some of this is stuff taken from the Emacs Wiki.
-;; I'm still learning emacs but hopefully this file may be of use to someone.
-;;
 
 ;; Determine what system I'm running on...
 (defvar running-on-linux (string-match "gnu/linux" (symbol-name system-type)))
@@ -8,16 +5,17 @@
 (defvar running-on-macosx (string-match "darwin" (symbol-name system-type)))
 
 (when running-on-linux
-  (message "Loading James' Emacs init file on wonderful Ubuntu"))
+  (message "* --[ Loading James' Wonderful Little Emacs init file on wonderful Ubuntu :-) ]--"))
 
 (when running-on-windows
-  (message "Loading James' Emacs init file on Windows"))
+  (message "* --[ Loading James' Wonderful Little Emacs init file on Windows ]--"))
 
 (when running-on-macosx
-  (message "Loading James' Emacs init file on a Mac..."))
+  (message "* --[ Loading James' Wonderful Little Emacs init file on a Mac... Lucky bastard! ]--"))
 
-;; Add some stuff to the load path
-(add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
+(scroll-bar-mode -1)
+(menu-bar-mode -1)
+(tool-bar-mode -1)
 
 ;; Load and setup Haskell mode
 (load "~/.emacs.d/haskell-mode-2.8.0/haskell-site-file")
@@ -38,18 +36,23 @@
 (add-to-list 'ac-dictionary-directories "~/.emacs.d//ac-dict")
 (ac-config-default)
 
-(require 'csharp-mode)
-(require 'color-theme)
+(require 'smex)
+(smex-initialize)
+(global-set-key (kbd "M-x") 'smex)
+(global-set-key (kbd "M-X") 'smex-major-mode-commands)
+;; This is your old M-x.
+(global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+
+(add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
+(require 'coffee-mode)
 (require 'scratch)
 
-;; Customise Colours
-(set-cursor-color "blue") ; NOTE: This stands out quite well.
-(set-face-foreground 'default "floral white")
-(set-background-color "black") ; NOTE: Need to try out a few more colours
+;; Setup My Info
+(setq user-full-name "James R. North")
+(setq user-mail-address "jamesnorth2104@gmail.com")
 
 ;; I prefer the scroll bar on the right
-(set-scroll-bar-mode 'right)
-(tool-bar-mode 0)
+(display-time-mode 1)
 (setq inhibit-startup-screen t)
 (setq visible-bell t)       ; Turn off annoying Bell
 (setq frame-title-format (list "GNU Emacs " emacs-version "@" system-name " - " '(buffer-file-name "%f" "%b")))
@@ -60,7 +63,17 @@
 (global-linum-mode 1)
 (prefer-coding-system 'utf-8)
 
+;; Setup the Colour Theme
+(add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
+(require 'color-theme)
 (color-theme-initialize)
+(color-theme-solarized-light)
+
+(global-set-key (kbd "C-,") (lambda() (interactive) (scroll-up 1)))
+(global-set-key (kbd "C-.") (lambda() (interactive) (scroll-down 1)))
+(global-set-key [f5] 'ibuffer)
+(global-set-key [f6] 'find-file)
+(global-set-key [f7] 'kill-buffer)
 
 ;; Define a function to split the window horizontally, but
 ;; rather than the default behavour it will display the next
@@ -93,17 +106,29 @@
 (setq auto-save-interval 100)
 (setq auto-save-timeout 15)
 
+(defadvice yank (after indent-region activate)
+  (if (member major-mode
+              '(emacs-lisp-mode scheme-mode lisp-mode c-mode c++-mode
+                                objc-mode latex-mode plain-tex-mode python-mode))
+      (indent-region (region-beginning) (region-end) nil)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customise C mode a little
 (setq-default c-basic-offset 4
           tab-width 4
           indent-tabs-mode t)
 
+;; I prefer spaces instead of tabs... except of course in Makefiles!
+(add-hook 'before-save-hook 
+		  (lambda () 
+			(unless (equal major-mode 'makefile-gmake-mode) 
+			  (progn
+				(untabify-buffer)))))
+
 (defun my-c-mode-hook ()
   (setq c-basic-offset 4)
   (setq tab-width 4)
   (setq indent-tabs-mode t)
-  (add-hook 'before-save-hook 'untabify-buffer)
   (local-set-key (kbd "<return>") 'newline-and-indent)
   (local-set-key (kbd "<linefeed>") 'newline)
   (font-lock-add-keywords nil
@@ -147,13 +172,8 @@
   (interactive)
   (setq-default show-trailing-whitespace nil))
 
-(defadvice yank (after indent-region activate)
-  (if (member major-mode
-              '(emacs-lisp-mode scheme-mode lisp-mode c-mode c++-mode
-                objc-mode latex-mode plain-tex-mode python-mode))
-      (indent-region (region-beginning) (region-end) nil)))
-
 (defun dos-to-unix ()
+  "Cut all the visible ^M from the current buffer"
   (interactive)
   (save-excursion
     (goto-char (point-min))
@@ -167,14 +187,13 @@
     (while (search-forward "\n" nil t)
       (replace-match "\r\n"))))
 
-(defun my-insert-time-stamp ()
-  "Insert a time stamp."
-  (interactive "*")
-  (insert (format "%s %s %s %s"
-                  comment-start
-                  (format-time-string "%Y-%m-%d")
-                  (user-login-name)
-                  comment-end)))
+(defun insert-time-stamp ()
+  (interactive)
+  (insert (format-time-string "%H:%M:%S")))
+
+(defun insert-date-stamp ()
+  (interactive)
+  (insert (format-time-string "%d-%m-%Y")))
 
 (defun my-revert-buffer ()
   "Unconditionally revert current buffer."
@@ -204,22 +223,6 @@
 (defun close-all-buffers ()
   (interactive)
   (mapc 'kill-bufer (buffer-list)))
-
-;; **************************************************************************************
-;; Everything below here is me playing around with E-Lisp
-
-(defconst M_PI 3.14159265)
-(defconst M_E 2.718281828)
-
-(defun capacitive-reactance (f c)
-  "Calculates the reactance of a capacitor and displays it
-    to the user in the mini buffer."
-  (message "The capacitive reactance is %f" (/ 1 (* 2 M_PI f c))))
-
-(defun inductive-reactance (f l)
-  "Calculates inductive reactance and displays it
-    to the user in the mini buffer."
-  (message "The inductive reactance is %f" (* 2 M_PI f l)))
 
 ;; Implement a function to convert degrees to radians
 (defun deg2rad (deg)
