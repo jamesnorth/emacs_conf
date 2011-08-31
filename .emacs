@@ -45,6 +45,7 @@
 
 (add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
 (require 'coffee-mode)
+(require 'php-mode)
 (require 'scratch)
 
 ;; Setup My Info
@@ -120,10 +121,10 @@
 
 ;; I prefer spaces instead of tabs... except of course in Makefiles!
 (add-hook 'before-save-hook 
-		  (lambda () 
-			(unless (equal major-mode 'makefile-gmake-mode) 
-			  (progn
-				(untabify-buffer)))))
+          (lambda () 
+            (unless (equal major-mode 'makefile-gmake-mode) 
+              (progn
+                (untabify-buffer)))))
 
 (defun my-c-mode-hook ()
   (setq c-basic-offset 4)
