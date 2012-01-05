@@ -49,7 +49,7 @@
 (require 'scratch)
 
 ;; Setup My Info
-(setq user-full-name "James R. North")
+(setq user-full-name "James North")
 (setq user-mail-address "jamesnorth2104@gmail.com")
 
 ;; I prefer the scroll bar on the right
@@ -62,6 +62,7 @@
 (line-number-mode 1)
 (column-number-mode 1)
 (global-linum-mode 1)
+(show-paren-mode 1)
 (prefer-coding-system 'utf-8)
 
 ;; Setup the Colour Theme
@@ -132,8 +133,8 @@
   (setq indent-tabs-mode t)
   (local-set-key (kbd "<return>") 'newline-and-indent)
   (local-set-key (kbd "<linefeed>") 'newline)
-  (font-lock-add-keywords nil
-      '(("^[^\n]\\{80\\}\\(.*\\)$" 1 font-lock-warning-face t)))
+;  (font-lock-add-keywords nil
+;      '(("^[^\n]\\{80\\}\\(.*\\)$" 1 font-lock-warning-face t)))
   (font-lock-add-keywords nil
       '(("\\<\\(FIXME\\|TODO\\|BUG\\|XXX\\):" 1 font-lock-warning-face t))))
 
@@ -187,6 +188,21 @@
     (goto-char (point-min))
     (while (search-forward "\n" nil t)
       (replace-match "\r\n"))))
+
+(defun eval-and-replace (value)
+  "Evaluates an S-Expression near your cursor and replaces it with it's value"
+  (interactive (list (eval-last-sexp nil)))
+  (kill-sexp -1)
+  (insert (format "%s" value)))
+
+(defun insert-getter-setter (name)
+  (interactive "sEnter Property name: ")
+  (insert "@property\n")
+  (insert (format "def %s(self):\n" name))
+  (insert (format "    return self._%s\n" name))
+  (insert (format "@%s.setter\n" name))
+  (insert (format "def %s(self, value):\n" name))
+  (insert (format "    self._%s = value\n\n" name)))
 
 (defun insert-time-stamp ()
   (interactive)
