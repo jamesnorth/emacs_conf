@@ -45,8 +45,8 @@
 
 (add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
 (require 'coffee-mode)
-(require 'php-mode)
 (require 'scratch)
+(require 'less-css-mode)
 
 ;; Setup My Info
 (setq user-full-name "James North")
