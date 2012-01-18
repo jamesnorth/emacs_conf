@@ -45,32 +45,65 @@
 
 (add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
 (require 'coffee-mode)
+(require 'php-mode)
 (require 'scratch)
+;(require 'less-css-mode)
 (require 'less-css-mode)
 
 ;; Setup My Info
 (setq user-full-name "James North")
 (setq user-mail-address "jamesnorth2104@gmail.com")
 
+(global-set-key "\C-ca" 'org-agenda)
+
 ;; I prefer the scroll bar on the right
 (display-time-mode 1)
 (setq inhibit-startup-screen t)
-(setq visible-bell t)       ; Turn off annoying Bell
+
 (setq frame-title-format (list "GNU Emacs " emacs-version "@" system-name " - " '(buffer-file-name "%f" "%b")))
 (setq icon-title-format (list "GNU Emacs " emacs-version))
-(set-default 'truncate-lines t)
+
+(blink-cursor-mode t)
 (line-number-mode 1)
 (column-number-mode 1)
 (global-linum-mode 1)
 (show-paren-mode 1)
+(global-hl-line-mode t)
+
+; Make it so yes-or-no questions answerable with 'y' or 'n'
+; Much easier
+(fset 'yes-or-no-p 'y-or-n-p)
+
+; XXX: Just trying this out...
+(setq scroll-conservatively 10000
+      scroll-step 1)
+
+; wrap lines in a tasteful way
+(global-visual-line-mode 1)
+;(set-default 'truncate-lines t)
+
+; Default Encoding to Use....
 (prefer-coding-system 'utf-8)
+(set-language-environment 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
 
-;; Setup the Colour Theme
-(add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
-(require 'color-theme)
-(color-theme-initialize)
-(color-theme-solarized-light)
+;;;-----------------------------------------------------------------------------
+;; Setup the Colour Theme, if we're in a graphic window
+;;;-----------------------------------------------------------------------------
+(when (display-graphic-p)
+  (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
+  (require 'color-theme)
+  (color-theme-initialize)
+  (color-theme-solarized-light))
 
+(load "~/.emacs.d/jamesnorth")
+(require 'jamesnorth)
+
+;;;-----------------------------------------------------------------------------
+;;; My Custom Keybindings
+;;;-----------------------------------------------------------------------------
 (global-set-key (kbd "C-,") (lambda() (interactive) (scroll-up 1)))
 (global-set-key (kbd "C-.") (lambda() (interactive) (scroll-down 1)))
 (global-set-key [f5] 'ibuffer)
@@ -99,15 +132,23 @@
   (set-window-buffer (next-window) (other-buffer)))
 (global-set-key "\C-x2" 'my-custom-vert-split-window)
 
-;; Flash the scroll lock LED for visible-bell instead of flash the screen
-(setq ring-bell-function
-      (lambda ()
-        (call-process-shell-command "xset led 3; xset -led 3" nil 0 nil)))
-
+;;;-----------------------------------------------------------------------------
 ;; auto-save every 100 input events or every 15 seconds
+;;;-----------------------------------------------------------------------------
 (setq auto-save-interval 100)
 (setq auto-save-timeout 15)
 
+;;;-----------------------------------------------------------------------------
+;;; Turn off annoying Bell
+;;;-----------------------------------------------------------------------------
+(setq visible-bell t)
+(setq ring-bell-function ;; Flash the scroll lock LED for visible-bell instead of flash the screen
+      (lambda ()
+        (call-process-shell-command "xset led 3; xset -led 3" nil 0 nil)))
+
+;;;-----------------------------------------------------------------------------
+;;; Indent the region after yanking
+;;;-----------------------------------------------------------------------------
 (defadvice yank (after indent-region activate)
   (if (member major-mode
               '(emacs-lisp-mode scheme-mode lisp-mode c-mode c++-mode
@@ -203,6 +244,10 @@
   (insert (format "@%s.setter\n" name))
   (insert (format "def %s(self, value):\n" name))
   (insert (format "    self._%s = value\n\n" name)))
+
+(defun java-insert-constant (name) 
+  (interactive "sEnter Constant Name: ")
+  (insert "final int " name " = 0;"))
 
 (defun insert-time-stamp ()
   (interactive)
