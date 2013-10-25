@@ -5,13 +5,13 @@
 (defvar running-on-macosx (string-match "darwin" (symbol-name system-type)))
 
 (when running-on-linux
-  (message "* --[ Loading James' Wonderful Little Emacs init file on wonderful Ubuntu :-) ]--"))
+  (message "* --[ Loading James' Wonderful Little Emacs init file on a GNU/Linux system :-) ]--"))
 
 (when running-on-windows
   (message "* --[ Loading James' Wonderful Little Emacs init file on Windows ]--"))
 
 (when running-on-macosx
-  (message "* --[ Loading James' Wonderful Little Emacs init file on a Mac... Lucky bastard! ]--"))
+  (message "* --[ Loading James' Wonderful Little Emacs init file on a Mac... Eh I dont have one? ]--"))
 
 (scroll-bar-mode -1)
 (menu-bar-mode -1)
@@ -36,39 +36,45 @@
 (add-to-list 'ac-dictionary-directories "~/.emacs.d//ac-dict")
 (ac-config-default)
 
+(add-to-list 'load-path "~/.emacs.d/pov-mode")
+(autoload 'pov-mode "pov-mode" "PoVray scene file mode" t)
+(add-to-list 'auto-mode-alist '("\\.pov\\'" . pov-mode))
+(add-to-list 'auto-mode-alist '("\\.inc\\'" . pov-mode))
+
 (require 'smex)
 (smex-initialize)
-(global-set-key (kbd "M-x") 'smex)
-(global-set-key (kbd "M-X") 'smex-major-mode-commands)
-;; This is your old M-x.
-(global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+
+(require 'rect-mark)
 
 (add-to-list 'load-path "~/.emacs.d/vendor/coffee-mode")
+(add-to-list 'load-path "~/.emacs.d/iedit")
+
 (require 'coffee-mode)
 (require 'php-mode)
 (require 'scratch)
-;(require 'less-css-mode)
 (require 'less-css-mode)
+(require 'quickrun)
+(require 'iedit)
 
 ;; Setup My Info
 (setq user-full-name "James North")
-(setq user-mail-address "jamesnorth2104@gmail.com")
-
-(global-set-key "\C-ca" 'org-agenda)
+(setq user-mail-address "james.n@melectronics.co.uk")
 
 ;; I prefer the scroll bar on the right
 (display-time-mode 1)
 (setq inhibit-startup-screen t)
 
-(setq frame-title-format (list "GNU Emacs " emacs-version "@" system-name " - " '(buffer-file-name "%f" "%b")))
+(setq frame-title-format (list "em:" '(buffer-file-name "%f" "%b")))
 (setq icon-title-format (list "GNU Emacs " emacs-version))
+(setq initial-scratch-message "")
 
 (blink-cursor-mode t)
 (line-number-mode 1)
 (column-number-mode 1)
 (global-linum-mode 1)
 (show-paren-mode 1)
-(global-hl-line-mode t)
+
+(setq make-backup-files nil)
 
 ; Make it so yes-or-no questions answerable with 'y' or 'n'
 ; Much easier
@@ -96,19 +102,11 @@
   (add-to-list 'load-path "~/.emacs.d/color-theme-6.6.0")
   (require 'color-theme)
   (color-theme-initialize)
-  (color-theme-solarized-light))
+  (color-theme-solarized-dark))
 
 (load "~/.emacs.d/jamesnorth")
 (require 'jamesnorth)
-
-;;;-----------------------------------------------------------------------------
-;;; My Custom Keybindings
-;;;-----------------------------------------------------------------------------
-(global-set-key (kbd "C-,") (lambda() (interactive) (scroll-up 1)))
-(global-set-key (kbd "C-.") (lambda() (interactive) (scroll-down 1)))
-(global-set-key [f5] 'ibuffer)
-(global-set-key [f6] 'find-file)
-(global-set-key [f7] 'kill-buffer)
+(require 'keybindings)
 
 ;; Define a function to split the window horizontally, but
 ;; rather than the default behavour it will display the next
@@ -157,7 +155,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customise C mode a little
-(setq-default c-basic-offset 4
+(setq-default c-basic-offset 2
           tab-width 4
           indent-tabs-mode t)
 
@@ -168,12 +166,97 @@
               (progn
                 (untabify-buffer)))))
 
+;; Wrapper function needed for Emacs 21 and XEmacs (Emacs 22 offers the more
+;; elegant solution of composing a list of lineup functions or quantities with
+;; operators such as "add")
+(defun google-c-lineup-expression-plus-4 (langelem)
+  "Indents to the beginning of the current C expression plus 4 spaces.
+
+This implements title \"Function Declarations and Definitions\"
+of the Google C++ Style Guide for the case where the previous
+line ends with an open parenthese.
+
+\"Current C expression\", as per the Google Style Guide and as
+clarified by subsequent discussions, means the whole expression
+regardless of the number of nested parentheses, but excluding
+non-expression material such as \"if(\" and \"for(\" control
+structures.
+
+Suitable for inclusion in `c-offsets-alist'."
+  (save-excursion
+    (back-to-indentation)
+    ;; Go to beginning of *previous* line:
+    (c-backward-syntactic-ws)
+    (back-to-indentation)
+    (cond
+     ;; We are making a reasonable assumption that if there is a control
+     ;; structure to indent past, it has to be at the beginning of the line.
+     ((looking-at "\\(\\(if\\|for\\|while\\)\\s *(\\)")
+      (goto-char (match-end 1)))
+     ;; For constructor initializer lists, the reference point for line-up is
+     ;; the token after the initial colon.
+     ((looking-at ":\\s *")
+      (goto-char (match-end 0))))
+    (vector (+ 4 (current-column)))))
+
 (defun my-c-mode-hook ()
-  (setq c-basic-offset 4)
+  (setq c-basic-offset 2)
   (setq tab-width 4)
   (setq indent-tabs-mode t)
+  (c-indent-comments-syntactically-p t)
+  (c-hanging-braces-alist . ((defun-open after)
+                             (defun-close before after)
+                             (class-open after)
+                             (class-close before after)
+                             (inexpr-class-open after)
+                             (inexpr-class-close before)
+                             (namespace-open after)
+                             (inline-open after)
+                             (inline-close before after)
+                             (block-open after)
+                             (block-close . c-snug-do-while)
+                             (extern-lang-open after)
+                             (extern-lang-close after)
+                             (statement-case-open after)
+                             (substatement-open after)))
+  (comment-column 40)
   (local-set-key (kbd "<return>") 'newline-and-indent)
   (local-set-key (kbd "<linefeed>") 'newline)
+  (c-hanging-semi&comma-criteria
+   . (c-semi&comma-no-newlines-for-oneline-inliners
+      c-semi&comma-inside-parenlist
+      c-semi&comma-no-newlines-before-nonblanks))
+  (c-indent-comment-alist . ((other . (space . 2))))
+  (c-cleanup-list . (brace-else-brace
+                     brace-elseif-brace
+                     brace-catch-brace
+                     empty-defun-braces
+                     defun-close-semi
+                     list-close-comma
+                     scope-operator))
+  (c-offsets-alist . ((arglist-intro google-c-lineup-expression-plus-4)
+                      (func-decl-cont . ++)
+                      (member-init-intro . ++)
+                      (inher-intro . ++)
+                      (comment-intro . 0)
+                      (arglist-close . c-lineup-arglist)
+                      (topmost-intro . 0)
+                      (block-open . 0)
+                      (inline-open . 0)
+                      (substatement-open . 0)
+                      (statement-cont
+                       .
+                       (,(when (fboundp 'c-no-indent-after-java-annotations)
+                           'c-no-indent-after-java-annotations)
+                        ,(when (fboundp 'c-lineup-assignments)
+                           'c-lineup-assignments)
+                        ++))
+                      (label . /)
+                      (case-label . +)
+                      (statement-case-open . +)
+                      (statement-case-intro . +) ; case w/o {
+                      (access-label . /)
+                      (innamespace . 0)))
 ;  (font-lock-add-keywords nil
 ;      '(("^[^\n]\\{80\\}\\(.*\\)$" 1 font-lock-warning-face t)))
   (font-lock-add-keywords nil
@@ -251,7 +334,7 @@
 
 (defun insert-time-stamp ()
   (interactive)
-  (insert (format-time-string "%H:%M:%S")))
+  (insert (format-time-string "%H:%M")))
 
 (defun insert-date-stamp ()
   (interactive)

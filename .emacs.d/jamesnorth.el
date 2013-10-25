@@ -45,5 +45,8 @@
         (e (if mark-active end (point-max))))
     (message "Word count: %s" (how-many "\\w+" b e))))
 
+(defun avg (&rest args)
+  (/ (apply #'sum args) (length args)))
+
 (provide 'jamesnorth)
 
